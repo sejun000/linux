@@ -29,6 +29,8 @@
 
 #define NVME_MINORS		(1U << MINORBITS)
 
+
+uint16_t blk_map[TOTAL_PAGES];
 unsigned int admin_timeout = 60;
 module_param(admin_timeout, uint, 0644);
 MODULE_PARM_DESC(admin_timeout, "timeout in seconds for admin commands");
@@ -905,13 +907,20 @@ static inline blk_status_t nvme_setup_write_zeroes(struct nvme_ns *ns,
 	return BLK_STS_OK;
 }
 
+
+
 static inline blk_status_t nvme_setup_rw(struct nvme_ns *ns,
 		struct request *req, struct nvme_command *cmnd,
 		enum nvme_opcode op)
 {
+	bool half_ftl = false;
 	struct nvme_ctrl *ctrl = ns->ctrl;
 	u16 control = 0;
 	u32 dsmgmt = 0;
+	if (ctrl->subsys != NULL) {
+		half_ftl = (ctrl->vendor_id == 0xcafe);
+		NVMEV_DEBUG_VERBOSE("half_ftl: %d\n", half_ftl);
+	}
 
 	if (req->cmd_flags & REQ_FUA)
 		control |= NVME_RW_FUA;
@@ -2674,6 +2683,7 @@ static int nvme_init_subsystem(struct nvme_ctrl *ctrl, struct nvme_id_ctrl *id)
 {
 	struct nvme_subsystem *subsys, *found;
 	int ret;
+	int i;
 
 	subsys = kzalloc(sizeof(*subsys), GFP_KERNEL);
 	if (!subsys)
@@ -2689,6 +2699,11 @@ static int nvme_init_subsystem(struct nvme_ctrl *ctrl, struct nvme_id_ctrl *id)
 	memcpy(subsys->model, id->mn, sizeof(subsys->model));
 	memcpy(subsys->firmware_rev, id->fr, sizeof(subsys->firmware_rev));
 	subsys->vendor_id = le16_to_cpu(id->vid);
+	ctrl->vendor_id = id->vid;
+	for (i = 0; i < TOTAL_PAGES; i++){
+		blk_map[i] = INVALID_BLK_ENTRY;
+	}
+	printk("initialized vendored id %p %d\n", ctrl, id->vid);
 	subsys->cmic = id->cmic;
 	subsys->awupf = le16_to_cpu(id->awupf);
 #ifdef CONFIG_NVME_MULTIPATH

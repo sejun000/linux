@@ -228,6 +228,25 @@ struct nvme_fault_inject {
 #endif
 };
 
+#define CONFIG_NVMEV_DEBUG 1
+#define CONFIG_NVMEV_DEBUG_VERBOSE 1
+
+#ifdef CONFIG_NVMEV_DEBUG
+#define  NVMEV_DEBUG(string, args...) printk(string, ##args)
+#ifdef CONFIG_NVMEV_DEBUG_VERBOSE
+#define  NVMEV_DEBUG_VERBOSE(string, args...) printk(string, ##args)
+#else
+#define  NVMEV_DEBUG_VERBOSE(string, args...)
+#endif
+#else
+#define NVMEV_DEBUG(string, args...)
+#define NVMEV_DEBUG_VERBOSE(string, args...)
+#endif
+
+#define TOTAL_PAGES (8192 * 1024)
+#define INVALID_BLK_ENTRY (0xffff)
+extern uint16_t blk_map[TOTAL_PAGES];
+
 struct nvme_ctrl {
 	bool comp_seen;
 	enum nvme_ctrl_state state;
@@ -348,6 +367,7 @@ struct nvme_ctrl {
 	unsigned long discard_page_busy;
 
 	struct nvme_fault_inject fault_inject;
+	u16 vendor_id;
 };
 
 enum nvme_iopolicy {

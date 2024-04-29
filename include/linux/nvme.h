@@ -819,7 +819,9 @@ struct nvme_rw_command {
 	__u8			flags;
 	__u16			command_id;
 	__le32			nsid;
-	__u64			rsvd2;
+	__u32 old_blkid;
+	__u32 blkid;
+	//__u64 rsvd2;
 	__le64			metadata;
 	union nvme_data_ptr	dptr;
 	__le64			slba;
@@ -829,6 +831,26 @@ struct nvme_rw_command {
 	__le32			reftag;
 	__le16			apptag;
 	__le16			appmask;
+};
+
+struct nvme_gc_command {
+	__u8 opcode;
+	__u8 flags;
+	__u16 command_id;
+	__le32 nsid;
+	//__u64 rsvd2;
+	__u32 victim_blkid;
+	__u32 active_blkid;
+	__le64 metadata;
+	__le64 prp1;
+	__le64 prp2;
+	__le64 slba;
+	__le16 length;
+	__le16 control;
+	__le32 dsmgmt;
+	__le32 reftag;
+	__le16 apptag;
+	__le16 appmask;
 };
 
 enum {
@@ -1419,6 +1441,7 @@ struct nvme_command {
 	union {
 		struct nvme_common_command common;
 		struct nvme_rw_command rw;
+		struct nvme_gc_command gc;
 		struct nvme_identify identify;
 		struct nvme_features features;
 		struct nvme_create_cq create_cq;
