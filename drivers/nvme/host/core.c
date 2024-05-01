@@ -20,6 +20,7 @@
 #include <linux/nvme_ioctl.h>
 #include <linux/pm_qos.h>
 #include <asm/unaligned.h>
+#include <linux/halfmap.h>
 
 #include "nvme.h"
 #include "fabrics.h"
@@ -907,14 +908,14 @@ static inline blk_status_t nvme_setup_write_zeroes(struct nvme_ns *ns,
 	return BLK_STS_OK;
 }
 
-
-
 static inline blk_status_t nvme_setup_rw(struct nvme_ns *ns,
 		struct request *req, struct nvme_command *cmnd,
 		enum nvme_opcode op)
 {
 	bool half_ftl = false;
 	struct nvme_ctrl *ctrl = ns->ctrl;
+	struct bio *bio = req->bio;
+	struct halfmap_private *pri = bio->bi_private;
 	u16 control = 0;
 	u32 dsmgmt = 0;
 	if (ctrl->subsys != NULL) {
@@ -934,7 +935,12 @@ static inline blk_status_t nvme_setup_rw(struct nvme_ns *ns,
 	cmnd->rw.nsid = cpu_to_le32(ns->head->ns_id);
 	cmnd->rw.slba = cpu_to_le64(nvme_sect_to_lba(ns, blk_rq_pos(req)));
 	cmnd->rw.length = cpu_to_le16((blk_rq_bytes(req) >> ns->lba_shift) - 1);
-
+	if (half_ftl == true) {
+		if (pri != NULL) {
+			cmnd->rw.old_blkid = pri->old_phy_blk_addr;
+			cmnd->rw.blkid = pri->phy_blk_addr;
+		}
+	}
 	if (req_op(req) == REQ_OP_WRITE && ctrl->nr_streams)
 		nvme_assign_write_stream(ctrl, req, &control, &dsmgmt);
 

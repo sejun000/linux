@@ -38,6 +38,7 @@ faulty-y	+= md-faulty.o
 # themselves, and md.o may use the personalities when it 
 # auto-initialised.
 
+obj-m += dm-halfmap.o
 obj-$(CONFIG_MD_LINEAR)		+= linear.o
 obj-$(CONFIG_MD_RAID0)		+= raid0.o
 obj-$(CONFIG_MD_RAID1)		+= raid1.o
